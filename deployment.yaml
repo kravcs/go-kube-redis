@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    labels:
+        app: frontend
+    name: frontend
+spec:
+    replicas: 2
+    selector:
+        matchLabels:
+            app: frontend
+    template:
+        metadata:
+            labels:
+                app: frontend
+        spec:
+            containers:
+                - image: kravcs01/gokuberedis
+                  imagePullPolicy: IfNotPresent
+                  name: frontend
+                  ports:
+                      - containerPort: 3000
+                  env:
+                      - name: REDIS_PASSWORD
+                        valueFrom:
+                            secretKeyRef:
+                                name: redis-password
+                                key: redis-password
+                  volumeMounts:
+                      - name: config-volume
+                        mountPath: /app/config.json
+                        subPath: config.json
+            volumes:
+                - name: config-volume
+                  configMap:
+                      name: app-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+    labels:
+        app: frontend
+    name: frontend-svc
+spec:
+    ports:
+        - port: 3000
+          protocol: TCP
+          targetPort: 3000
+          name: http
+    selector:
+        app: frontend
+    type: ClusterIP
